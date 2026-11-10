@@ -1,0 +1,14 @@
+# Build artifacts
+*.o
+*.d
+*.a
+*.so
+raycast
+build/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
