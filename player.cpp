@@ -4,7 +4,7 @@
 
 namespace
 {
-const float MOVE_SPEED = 5.0f;  // pixels per frame
+const float MOVE_SPEED = 4.0f;  // pixels per frame
 const float TURN_SPEED = 0.1f;  // radians per frame
 const float TWO_PI = 2.0f * PI;
 }
