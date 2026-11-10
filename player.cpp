@@ -1,5 +1,13 @@
 #include "player.h"
 #include "raylib.h"
+#include <cmath>
+
+namespace
+{
+const float MOVE_SPEED = 5.0f;  // pixels per frame
+const float TURN_SPEED = 0.1f;  // radians per frame
+const float TWO_PI = 2.0f * PI;
+}
 
 Player::Player()
 {
@@ -7,12 +15,19 @@ Player::Player()
     height = 0.0f;
     posX = 0.0f;
     posY = 0.0f;
+
+    da = 0.0f; // facing right
+    dx = MOVE_SPEED * std::cos(da);
+    dy = MOVE_SPEED * std::sin(da);
 }
 
 float Player::GetWidth() const { return width; }
 float Player::GetHeight() const { return height; }
 float Player::GetX() const { return posX; }
 float Player::GetY() const { return posY; }
+float Player::GetDX() const { return dx; }
+float Player::GetDY() const { return dy; }
+float Player::GetDA() const { return da; }
 
 void Player::Spawn(const Grid& grid)
 {
@@ -81,23 +96,46 @@ bool Player::SetPosition(float x, float y, const Grid& grid)
 
 void Player::Move(const Grid& grid)
 {
-    const float speed = 2.0f;
+    // Turning
+    if (IsKeyDown(KEY_A))
+    {
+        da += TURN_SPEED;
+        if (da > TWO_PI)
+            da -= TWO_PI;
+    }
+    if (IsKeyDown(KEY_D))
+    {
+        da -= TURN_SPEED;
+        if (da < 0.0f)
+            da += TWO_PI;
+    }
+    dx = MOVE_SPEED * std::cos(da);
+    dy = MOVE_SPEED * std::sin(da);
 
-    float dx = 0.0f;
-    float dy = 0.0f;
-    if (IsKeyDown(KEY_W)) dy -= speed;
-    if (IsKeyDown(KEY_S)) dy += speed;
-    if (IsKeyDown(KEY_A)) dx -= speed;
-    if (IsKeyDown(KEY_D)) dx += speed;
-
-    // Move each axis separately so the player slides along walls
-    // instead of sticking to them.
-    SetPosition(posX + dx, posY, grid);
-    SetPosition(posX, posY + dy, grid);
+    // Forward / backward. Each axis is checked separately so the player
+    // slides along walls instead of sticking to them.
+    if (IsKeyDown(KEY_W))
+    {
+        SetPosition(posX + dx, posY, grid);
+        SetPosition(posX, posY - dy, grid);
+    }
+    if (IsKeyDown(KEY_S))
+    {
+        SetPosition(posX - dx, posY, grid);
+        SetPosition(posX, posY + dy, grid);
+    }
 }
 
 void Player::Draw() const
 {
     DrawRectangleV({posX - width / 2.0f, posY - height / 2.0f},
                    {width, height}, RED);
+
+    // Direction line: starts at the player's centre, points forward.
+    const float lineLength = 30.0f;
+    const float lineThickness = 2.0f;
+    Vector2 start = {posX, posY};
+    Vector2 end = {posX + std::cos(da) * lineLength,
+                   posY - std::sin(da) * lineLength};
+    DrawLineEx(start, end, lineThickness, RED);
 }
