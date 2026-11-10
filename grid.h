@@ -20,6 +20,13 @@ public:
 
     int GetCols() const;
     int GetRows() const;
+    float GetBlockWidth() const;
+    float GetBlockHeight() const;
+    float GetSpacingX() const;
+    float GetSpacingY() const;
+
+    // True if pixel (px, py) is outside the grid or inside an alive square.
+    bool IsWallAt(float px, float py) const;
 
 private:
     int cols;

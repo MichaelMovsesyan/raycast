@@ -68,3 +68,19 @@ void Grid::Draw() const
 
 int Grid::GetCols() const { return cols; }
 int Grid::GetRows() const { return rows; }
+float Grid::GetBlockWidth() const { return blockWidth; }
+float Grid::GetBlockHeight() const { return blockHeight; }
+float Grid::GetSpacingX() const { return spacingX; }
+float Grid::GetSpacingY() const { return spacingY; }
+
+bool Grid::IsWallAt(float px, float py) const
+{
+    if (px < 0.0f || py < 0.0f)
+        return true;
+
+    // Each square owns the gap to its right and below it.
+    int x = static_cast<int>(px / (blockWidth + spacingX));
+    int y = static_cast<int>(py / (blockHeight + spacingY));
+
+    return !InBounds(x, y) || IsAlive(x, y);
+}

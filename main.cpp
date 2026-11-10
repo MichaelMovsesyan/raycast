@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "grid.h"
+#include "player.h"
 
 int main()
 {
@@ -14,11 +15,17 @@ int main()
 
     grid.Randomize();
 
+    Player player;
+    player.Spawn(grid);
+
     while (!WindowShouldClose())
     {
+        player.Move(grid);
+
         BeginDrawing();
         ClearBackground(BLACK);
         grid.Draw();
+        player.Draw();
         EndDrawing();
     }
 
