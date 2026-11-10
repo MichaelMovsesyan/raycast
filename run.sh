@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 make
-./raycast "$@"
+./build/raycast "$@"

@@ -1,10 +1,9 @@
-# Build artifacts
+# Build output
+build/
 *.o
 *.d
 *.a
 *.so
-raycast
-build/
 
 # Editor / OS
 .vscode/
