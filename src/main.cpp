@@ -25,7 +25,7 @@ int main()
         BeginDrawing();
         ClearBackground(BLACK);
         grid.Draw();
-        player.DrawRay(grid);
+        player.DrawRays(grid);
         player.Draw();
         EndDrawing();
     }

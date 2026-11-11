@@ -26,10 +26,10 @@ public:
     // Draws the player and a line showing which way it faces.
     void Draw() const;
 
-    // Draws a ray from the player along its facing direction. It hops from
-    // grid line to grid line and stops at the first alive cube, or after
-    // MAX_RAY_STEPS lines if it never finds one.
-    void DrawRay(const Grid& grid) const;
+    // Draws RAY_COUNT rays fanned across a 60 degree view (30 either side
+    // of the facing direction). Each hops from grid line to grid line and
+    // stops at the first alive cube, or after MAX_RAY_STEPS lines.
+    void DrawRays(const Grid& grid) const;
 
 private:
     bool CanStandAt(float x, float y, const Grid& grid) const;

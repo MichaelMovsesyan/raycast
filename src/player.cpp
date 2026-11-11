@@ -8,6 +8,11 @@ namespace
 const float MOVE_SPEED = 4.0f;  // pixels per frame
 const float TURN_SPEED = 0.1f;  // radians per frame
 const int MAX_RAY_STEPS = 20;   // grid lines a ray may cross before giving up
+const int RAY_COUNT = 15;
+
+// Half-width of the view as a vector length: tan(30 degrees) = 1 / sqrt(3).
+// A ray along dir + plane gives the left/right edge of the 60 degree view.
+const float FOV_PLANE = 0.57735027f;
 
 // Result of stepping a ray across one set of grid lines.
 struct RayHit
@@ -71,6 +76,22 @@ RayHit CastVertical(Vector2 origin, Vector2 dir, const Grid& grid)
         point = Vector2Add(point, offset);
     }
     return {point, false};
+}
+
+// Casts one ray and returns where it stops: whichever set of grid lines
+// stops it first.
+Vector2 CastRay(Vector2 origin, Vector2 dir, const Grid& grid)
+{
+    RayHit horizontal = CastHorizontal(origin, dir, grid);
+    RayHit vertical = CastVertical(origin, dir, grid);
+
+    // A pass that never crosses a line can't stop the ray.
+    float hDist = dir.y == 0.0f ? INFINITY
+                                : Vector2DistanceSqr(origin, horizontal.point);
+    float vDist = dir.x == 0.0f ? INFINITY
+                                : Vector2DistanceSqr(origin, vertical.point);
+
+    return hDist < vDist ? horizontal.point : vertical.point;
 }
 }
 
@@ -183,19 +204,21 @@ void Player::Draw() const
     DrawLineEx(start, end, lineThickness, RED);
 }
 
-void Player::DrawRay(const Grid& grid) const
+void Player::DrawRays(const Grid& grid) const
 {
     Vector2 origin = {posX, posY};
-    RayHit horizontal = CastHorizontal(origin, dir, grid);
-    RayHit vertical = CastVertical(origin, dir, grid);
 
-    // A pass that never crosses a line can't stop the ray.
-    float hDist = dir.y == 0.0f ? INFINITY
-                                : Vector2DistanceSqr(origin, horizontal.point);
-    float vDist = dir.x == 0.0f ? INFINITY
-                                : Vector2DistanceSqr(origin, vertical.point);
+    // Camera plane: perpendicular to dir, pointing to the player's right.
+    // ({1, 0} facing right -> {0, 1}, which is down the screen.)
+    Vector2 plane = Vector2Scale({-dir.y, dir.x}, FOV_PLANE);
 
-    // Whichever set of lines stops the ray first is where it ends.
-    Vector2 end = hDist < vDist ? horizontal.point : vertical.point;
-    DrawLineEx(origin, end, 1.0f, DARKGREEN);
+    for (int i = 0; i < RAY_COUNT; i++)
+    {
+        // t runs from -1 (left edge of the view) to +1 (right edge).
+        float t = 2.0f * i / (RAY_COUNT - 1) - 1.0f;
+        Vector2 rayDir = Vector2Normalize(Vector2Add(dir, Vector2Scale(plane, t)));
+
+        Vector2 end = CastRay(origin, rayDir, grid);
+        DrawLineEx(origin, end, 1.0f, DARKGREEN);
+    }
 }
