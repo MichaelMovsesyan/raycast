@@ -18,13 +18,9 @@ public:
     // dead square closest to the middle of the map.
     void Spawn(const Grid& grid);
 
-    // Moves the player only if the new spot is on the map (left half of
-    // the screen) and the whole player is over dead squares.
-    // Returns false and stays put otherwise.
-    bool SetPosition(float x, float y, const Grid& grid);
-
     // A/D turn left/right by 0.1 radians per frame.
-    // W/S move forward/backward along the facing direction; walls block it.
+    // W/S move forward/backward along the facing direction. The player only
+    // moves onto spots that are on the map and fully over dead squares.
     void Move(const Grid& grid);
 
     // Draws the player and a line showing which way it faces.

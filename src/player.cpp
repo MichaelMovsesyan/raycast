@@ -56,11 +56,12 @@ void Player::Spawn(const Grid& grid)
     if (bestX < 0)
         return; // every square is alive; nowhere to stand
 
-    // Put the player in the centre of that square.
+    // Put the player in the centre of that square. The player is a quarter
+    // of a block, so it always fits inside a dead square.
     float pitchX = grid.GetBlockWidth() + grid.GetSpacingX();
     float pitchY = grid.GetBlockHeight() + grid.GetSpacingY();
-    SetPosition(bestX * pitchX + grid.GetBlockWidth() / 2.0f,
-                bestY * pitchY + grid.GetBlockHeight() / 2.0f, grid);
+    posX = bestX * pitchX + grid.GetBlockWidth() / 2.0f;
+    posY = bestY * pitchY + grid.GetBlockHeight() / 2.0f;
 }
 
 bool Player::CanStandAt(float x, float y, const Grid& grid) const
@@ -77,18 +78,6 @@ bool Player::CanStandAt(float x, float y, const Grid& grid) const
            !grid.IsWallAt(right, bottom);
 }
 
-bool Player::SetPosition(float x, float y, const Grid& grid)
-{
-    // IsWallAt treats anything outside the grid as a wall, so this also
-    // keeps the player on the left half of the screen.
-    if (!CanStandAt(x, y, grid))
-        return false;
-
-    posX = x;
-    posY = y;
-    return true;
-}
-
 void Player::Move(const Grid& grid)
 {
     // Turning. Screen y grows downward, so a negative rotation turns the
@@ -99,19 +88,20 @@ void Player::Move(const Grid& grid)
         dir = Vector2Rotate(dir, TURN_SPEED);
     dir = Vector2Normalize(dir); // keep rounding error from building up
 
-    // Forward / backward. Each axis is checked separately so the player
-    // slides along walls instead of sticking to them.
-    Vector2 step = Vector2Scale(dir, MOVE_SPEED);
+    // Forward / backward.
+    Vector2 step = {0.0f, 0.0f};
     if (IsKeyDown(KEY_W))
-    {
-        SetPosition(posX + step.x, posY, grid);
-        SetPosition(posX, posY + step.y, grid);
-    }
+        step = Vector2Add(step, Vector2Scale(dir, MOVE_SPEED));
     if (IsKeyDown(KEY_S))
-    {
-        SetPosition(posX - step.x, posY, grid);
-        SetPosition(posX, posY - step.y, grid);
-    }
+        step = Vector2Subtract(step, Vector2Scale(dir, MOVE_SPEED));
+
+    // Each axis is checked separately so the player slides along walls
+    // instead of sticking to them. IsWallAt treats anything outside the
+    // grid as a wall, so this also keeps the player on the map.
+    if (CanStandAt(posX + step.x, posY, grid))
+        posX += step.x;
+    if (CanStandAt(posX, posY + step.y, grid))
+        posY += step.y;
 }
 
 void Player::Draw() const
