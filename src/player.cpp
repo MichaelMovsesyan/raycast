@@ -1,11 +1,77 @@
 #include "player.h"
 #include "raylib.h"
 #include "raymath.h"
+#include <cmath>
 
 namespace
 {
 const float MOVE_SPEED = 4.0f;  // pixels per frame
 const float TURN_SPEED = 0.1f;  // radians per frame
+const int MAX_RAY_STEPS = 20;   // grid lines a ray may cross before giving up
+
+// Result of stepping a ray across one set of grid lines.
+struct RayHit
+{
+    Vector2 point; // where the ray stopped
+    bool hit;      // true if it stopped on an alive cube
+};
+
+// Casts against the horizontal grid lines (y = k * pitchY).
+RayHit CastHorizontal(Vector2 origin, Vector2 dir, const Grid& grid)
+{
+    if (dir.y == 0.0f)
+        return {origin, false}; // parallel to the lines: never crosses one
+
+    float pitchY = grid.GetBlockHeight() + grid.GetSpacingY();
+
+    // First line in front of the player.
+    float rayY = std::floor(origin.y / pitchY) * pitchY;
+    if (dir.y > 0.0f)
+        rayY += pitchY;
+
+    // Slide along the ray to that line, then line to line by a fixed offset.
+    Vector2 point = {origin.x + (rayY - origin.y) * dir.x / dir.y, rayY};
+    float offsetY = dir.y > 0.0f ? pitchY : -pitchY;
+    Vector2 offset = {offsetY * dir.x / dir.y, offsetY};
+
+    // Nudge into the cube on the far side of the line before checking it.
+    float nudge = dir.y > 0.0f ? 0.01f : -0.01f;
+
+    for (int i = 0; i < MAX_RAY_STEPS; i++)
+    {
+        if (grid.IsWallAt(point.x, point.y + nudge))
+            return {point, true};
+        point = Vector2Add(point, offset);
+    }
+    return {point, false};
+}
+
+// Casts against the vertical grid lines (x = k * pitchX).
+RayHit CastVertical(Vector2 origin, Vector2 dir, const Grid& grid)
+{
+    if (dir.x == 0.0f)
+        return {origin, false};
+
+    float pitchX = grid.GetBlockWidth() + grid.GetSpacingX();
+
+    float rayX = std::floor(origin.x / pitchX) * pitchX;
+    if (dir.x > 0.0f)
+        rayX += pitchX;
+
+    Vector2 point = {rayX, origin.y + (rayX - origin.x) * dir.y / dir.x};
+    float offsetX = dir.x > 0.0f ? pitchX : -pitchX;
+    Vector2 offset = {offsetX, offsetX * dir.y / dir.x};
+
+    float nudge = dir.x > 0.0f ? 0.01f : -0.01f;
+
+    for (int i = 0; i < MAX_RAY_STEPS; i++)
+    {
+        if (grid.IsWallAt(point.x + nudge, point.y))
+            return {point, true};
+        point = Vector2Add(point, offset);
+    }
+    return {point, false};
+}
 }
 
 Player::Player()
@@ -115,4 +181,21 @@ void Player::Draw() const
     Vector2 start = {posX, posY};
     Vector2 end = Vector2Add(start, Vector2Scale(dir, lineLength));
     DrawLineEx(start, end, lineThickness, RED);
+}
+
+void Player::DrawRay(const Grid& grid) const
+{
+    Vector2 origin = {posX, posY};
+    RayHit horizontal = CastHorizontal(origin, dir, grid);
+    RayHit vertical = CastVertical(origin, dir, grid);
+
+    // A pass that never crosses a line can't stop the ray.
+    float hDist = dir.y == 0.0f ? INFINITY
+                                : Vector2DistanceSqr(origin, horizontal.point);
+    float vDist = dir.x == 0.0f ? INFINITY
+                                : Vector2DistanceSqr(origin, vertical.point);
+
+    // Whichever set of lines stops the ray first is where it ends.
+    Vector2 end = hDist < vDist ? horizontal.point : vertical.point;
+    DrawLineEx(origin, end, 2.0f, GREEN);
 }
