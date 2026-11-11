@@ -197,5 +197,5 @@ void Player::DrawRay(const Grid& grid) const
 
     // Whichever set of lines stops the ray first is where it ends.
     Vector2 end = hDist < vDist ? horizontal.point : vertical.point;
-    DrawLineEx(origin, end, 2.0f, GREEN);
+    DrawLineEx(origin, end, 1.0f, DARKGREEN);
 }
