@@ -8,7 +8,6 @@ namespace
 const float MOVE_SPEED = 4.0f;  // pixels per frame
 const float TURN_SPEED = 0.1f;  // radians per frame
 const int MAX_RAY_STEPS = 20;   // grid lines a ray may cross before giving up
-const int RAY_COUNT = 15;
 
 // Half-width of the view as a vector length: tan(30 degrees) = 1 / sqrt(3).
 // A ray along dir + plane gives the left/right edge of the 60 degree view.
@@ -204,7 +203,7 @@ void Player::Draw() const
     DrawLineEx(start, end, lineThickness, RED);
 }
 
-void Player::DrawRays(const Grid& grid) const
+std::vector<Vector2> Player::CastRays(const Grid& grid, int count) const
 {
     Vector2 origin = {posX, posY};
 
@@ -212,13 +211,49 @@ void Player::DrawRays(const Grid& grid) const
     // ({1, 0} facing right -> {0, 1}, which is down the screen.)
     Vector2 plane = Vector2Scale({-dir.y, dir.x}, FOV_PLANE);
 
-    for (int i = 0; i < RAY_COUNT; i++)
+    std::vector<Vector2> hits;
+    for (int i = 0; i < count; i++)
     {
         // t runs from -1 (left edge of the view) to +1 (right edge).
-        float t = 2.0f * i / (RAY_COUNT - 1) - 1.0f;
+        float t = count > 1 ? 2.0f * i / (count - 1) - 1.0f : 0.0f;
         Vector2 rayDir = Vector2Normalize(Vector2Add(dir, Vector2Scale(plane, t)));
+        hits.push_back(CastRay(origin, rayDir, grid));
+    }
+    return hits;
+}
 
-        Vector2 end = CastRay(origin, rayDir, grid);
-        DrawLineEx(origin, end, 1.0f, DARKGREEN);
+void Player::DrawRays(const std::vector<Vector2>& hits) const
+{
+    Vector2 origin = {posX, posY};
+    for (Vector2 hit : hits)
+        DrawLineEx(origin, hit, 1.0f, DARKGREEN);
+}
+
+void Player::DrawWalls(const std::vector<Vector2>& hits, Rectangle view,
+                       float blockSize) const
+{
+    if (hits.empty())
+        return;
+
+    Vector2 origin = {posX, posY};
+    float columnWidth = view.width / hits.size();
+
+    for (size_t i = 0; i < hits.size(); i++)
+    {
+        // Distance measured along the facing direction rather than along the
+        // ray, so walls straight ahead don't bulge (no fisheye).
+        float distance = Vector2DotProduct(Vector2Subtract(hits[i], origin), dir);
+        if (distance < 1.0f)
+            distance = 1.0f; // avoid dividing by ~0 when touching a wall
+
+        // Closer walls are taller, capped at the height of the view.
+        float lineHeight = blockSize * view.height / distance;
+        if (lineHeight > view.height)
+            lineHeight = view.height;
+
+        // Centre the column vertically in the view.
+        float x = view.x + i * columnWidth;
+        float y = view.y + (view.height - lineHeight) / 2.0f;
+        DrawRectangleV({x, y}, {columnWidth, lineHeight}, WHITE);
     }
 }

@@ -8,6 +8,12 @@ int main()
     const int screenHeight = 600;
     const int screenWidth = screenHeight * 2;
 
+    // 3D view fills the right half, one wall column every 8 pixels.
+    const Rectangle view = {(float)screenHeight, 0.0f,
+                            (float)(screenWidth - screenHeight), (float)screenHeight};
+    const int columnWidth = 8;
+    const int rayCount = (int)view.width / columnWidth;
+
     InitWindow(screenWidth, screenHeight, "raycast");
     SetTargetFPS(60);
 
@@ -25,7 +31,9 @@ int main()
         BeginDrawing();
         ClearBackground(BLACK);
         grid.Draw();
-        player.DrawRays(grid);
+        std::vector<Vector2> hits = player.CastRays(grid, rayCount);
+        player.DrawRays(hits);
+        player.DrawWalls(hits, view, grid.GetBlockHeight());
         player.Draw();
         EndDrawing();
     }
