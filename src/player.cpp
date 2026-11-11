@@ -1,12 +1,11 @@
 #include "player.h"
 #include "raylib.h"
-#include <cmath>
+#include "raymath.h"
 
 namespace
 {
 const float MOVE_SPEED = 4.0f;  // pixels per frame
 const float TURN_SPEED = 0.1f;  // radians per frame
-const float TWO_PI = 2.0f * PI;
 }
 
 Player::Player()
@@ -16,18 +15,14 @@ Player::Player()
     posX = 0.0f;
     posY = 0.0f;
 
-    da = 0.0f; // facing right
-    dx = MOVE_SPEED * std::cos(da);
-    dy = MOVE_SPEED * std::sin(da);
+    dir = {1.0f, 0.0f}; // facing right
 }
 
 float Player::GetWidth() const { return width; }
 float Player::GetHeight() const { return height; }
 float Player::GetX() const { return posX; }
 float Player::GetY() const { return posY; }
-float Player::GetDX() const { return dx; }
-float Player::GetDY() const { return dy; }
-float Player::GetDA() const { return da; }
+Vector2 Player::GetDir() const { return dir; }
 
 void Player::Spawn(const Grid& grid)
 {
@@ -96,33 +91,26 @@ bool Player::SetPosition(float x, float y, const Grid& grid)
 
 void Player::Move(const Grid& grid)
 {
-    // Turning
+    // Turning. Screen y grows downward, so a negative rotation turns the
+    // player left (counter-clockwise on screen).
     if (IsKeyDown(KEY_A))
-    {
-        da += TURN_SPEED;
-        if (da > TWO_PI)
-            da -= TWO_PI;
-    }
+        dir = Vector2Rotate(dir, -TURN_SPEED);
     if (IsKeyDown(KEY_D))
-    {
-        da -= TURN_SPEED;
-        if (da < 0.0f)
-            da += TWO_PI;
-    }
-    dx = MOVE_SPEED * std::cos(da);
-    dy = MOVE_SPEED * std::sin(da);
+        dir = Vector2Rotate(dir, TURN_SPEED);
+    dir = Vector2Normalize(dir); // keep rounding error from building up
 
     // Forward / backward. Each axis is checked separately so the player
     // slides along walls instead of sticking to them.
+    Vector2 step = Vector2Scale(dir, MOVE_SPEED);
     if (IsKeyDown(KEY_W))
     {
-        SetPosition(posX + dx, posY, grid);
-        SetPosition(posX, posY - dy, grid);
+        SetPosition(posX + step.x, posY, grid);
+        SetPosition(posX, posY + step.y, grid);
     }
     if (IsKeyDown(KEY_S))
     {
-        SetPosition(posX - dx, posY, grid);
-        SetPosition(posX, posY + dy, grid);
+        SetPosition(posX - step.x, posY, grid);
+        SetPosition(posX, posY - step.y, grid);
     }
 }
 
@@ -135,7 +123,6 @@ void Player::Draw() const
     const float lineLength = 30.0f;
     const float lineThickness = 2.0f;
     Vector2 start = {posX, posY};
-    Vector2 end = {posX + std::cos(da) * lineLength,
-                   posY - std::sin(da) * lineLength};
+    Vector2 end = Vector2Add(start, Vector2Scale(dir, lineLength));
     DrawLineEx(start, end, lineThickness, RED);
 }

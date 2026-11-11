@@ -1,6 +1,7 @@
 #pragma once
 
 #include "grid.h"
+#include "raylib.h"
 
 class Player
 {
@@ -11,9 +12,7 @@ public:
     float GetHeight() const;
     float GetX() const;
     float GetY() const;
-    float GetDX() const;
-    float GetDY() const;
-    float GetDA() const;
+    Vector2 GetDir() const;
 
     // Sizes the player to a quarter of a block and places it on the
     // dead square closest to the middle of the map.
@@ -39,10 +38,7 @@ private:
     float posX; // centre of the player
     float posY;
 
-    // Facing direction. da is the angle in radians (0 = facing right,
-    // increasing turns left). dx/dy are the step taken per frame.
-    // y is flipped because screen y grows downward.
-    float dx;
-    float dy;
-    float da;
+    // Facing direction as a unit vector in screen coordinates
+    // ({1, 0} = facing right, {0, -1} = facing up).
+    Vector2 dir;
 };
