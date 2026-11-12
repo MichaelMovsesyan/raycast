@@ -13,6 +13,11 @@ const int MAX_RAY_STEPS = 20;   // grid lines a ray may cross before giving up
 // A ray along dir + plane gives the left/right edge of the 60 degree view.
 const float FOV_PLANE = 0.57735027f;
 
+// Wall shading: full white up close, fading linearly to MIN_WALL_BRIGHTNESS
+// at WALL_FADE_DISTANCE pixels away (and staying there beyond it).
+const float WALL_FADE_DISTANCE = 600.0f;
+const float MIN_WALL_BRIGHTNESS = 0.35f;
+
 // Result of stepping a ray across one set of grid lines.
 struct RayHit
 {
@@ -254,6 +259,14 @@ void Player::DrawWalls(const std::vector<Vector2>& hits, Rectangle view,
         // Centre the column vertically in the view.
         float x = view.x + i * columnWidth;
         float y = view.y + (view.height - lineHeight) / 2.0f;
-        DrawRectangleV({x, y}, {columnWidth, lineHeight}, WHITE);
+
+        // Farther walls are a darker shade of white.
+        float brightness = 1.0f - (distance / WALL_FADE_DISTANCE) * (1.0f - MIN_WALL_BRIGHTNESS);
+        if (brightness < MIN_WALL_BRIGHTNESS)
+            brightness = MIN_WALL_BRIGHTNESS;
+        unsigned char shade = (unsigned char)(255.0f * brightness);
+        Color color = {shade, shade, shade, 255};
+
+        DrawRectangleV({x, y}, {columnWidth, lineHeight}, color);
     }
 }
